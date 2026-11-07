@@ -1,0 +1,39 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information\code/../output/replication_all_results.log
+  log type:  text
+ opened on:  20 Oct 2026, 16:41:29
+
+. 
+. * Install only if absent; no package is reinstalled when already available.
+. foreach package in synth sdid estout {
+  2.     capture which `package'
+  3.     if _rc {
+  4.         quietly ssc install `package', replace
+  5.     }
+  6. }
+
+. 
+. * 1. Data integrity and final-data audit.
+. do "code/audit_final_analysis_data.do"
+
+. version 17.0
+
+. clear all
+
+. set more off
+
+. 
+. * Audit final data used in all freeze-version analyses.
+. local root "`c(pwd)'"
+
+. local outdir "`root'/output"
+
+. local auditdir "`outdir'/final_data_audit"
+
+. cap mkdir "`auditdir'"
+
+. local paneldta "`outdir'/qiandongnan_county_panel_2015_2024_analysis_ready.dta"
+
+. 
+. capture log close

@@ -5,25 +5,53 @@ set linesize 255
 
 ********************************************************************************
 * Village BA replication package
-* Run after changing Stata's working directory to this package's top folder.
-* Example:
-*   cd ".../village_ba_replication_package"
-*   do "code/00_master_replication.do"
+* May be run from the package top folder or directly from Stata's Do-file Editor.
+* The code below automatically locates the package root when this file is saved
+* in the code/ subfolder.
 *
 * Input:  data/qiandongnan_county_panel_2015_2024_analysis_ready.dta
 * Output: output/supplementary_tables_final_rtf/S1_Table_*.rtf through S6_Table_*.rtf
 ********************************************************************************
 
+local datafile "qiandongnan_county_panel_2015_2024_analysis_ready.dta"
 local root "`c(pwd)'"
-local input "`root'/data/qiandongnan_county_panel_2015_2024_analysis_ready.dta"
-local output "`root'/output/qiandongnan_county_panel_2015_2024_analysis_ready.dta"
+local input "`root'/data/`datafile'"
+
+* If Stata's current directory is not the package root, derive the root from
+* this do-file's own path (the parent of code/).
+capture confirm file "`input'"
+if _rc {
+    capture confirm file "`root'/../data/`datafile'"
+    if !_rc local root "`root'/.."
+}
+
+local input "`root'/data/`datafile'"
+capture confirm file "`input'"
+if _rc {
+    local thisfile = subinstr("`c(filename)'", char(92), "/", .)
+    local slash = strrpos("`thisfile'", "/")
+    if `slash' > 0 {
+        local codedir = substr("`thisfile'", 1, `slash' - 1)
+        local parentslash = strrpos("`codedir'", "/")
+        if `parentslash' > 0 {
+            local candidate = substr("`codedir'", 1, `parentslash' - 1)
+            capture confirm file "`candidate'/data/`datafile'"
+            if !_rc local root "`candidate'"
+        }
+    }
+}
+
+local input "`root'/data/`datafile'"
+local output "`root'/output/`datafile'"
 
 capture confirm file "`input'"
 if _rc {
-    di as error "Run this file from the replication package top folder."
+    di as error "Replication package root could not be located."
     di as error "Required input data not found: `input'"
     exit 601
 }
+
+cd "`root'"
 
 cap mkdir "`root'/output"
 copy "`input'" "`output'", replace
@@ -37,7 +65,8 @@ foreach package in synth sdid estout {
     if _rc ssc install `package', replace
 }
 
-* Data integrity: balanced 16-county x 10-year panel and corrected Kaili values.
+* Data integrity: balanced 16-county x 10-year panel, corrected Kaili values,
+* and the final 2024 tourism-revenue observations for all 16 counties.
 do "code/audit_final_analysis_data.do"
 
 * Main-manuscript baseline SDID with placebo-based standard errors and CIs.

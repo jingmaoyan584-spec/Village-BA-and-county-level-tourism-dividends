@@ -7,9 +7,8 @@ set varabbrev off
 ********************************************************************************
 * Village BA: complete Stata replication file for journal submission
 *
-* Run this file from the top folder of the replication package:
-*   cd ".../village_ba_replication_package"
-*   do "replication_all_results.do"
+* May be run from the package top folder or directly from Stata's Do-file Editor.
+* The code below automatically locates the package root from this file's path.
 *
 * The file reads only the final analysis-ready .dta in data/. It does not
 * import CSV files for estimation and does not use absolute local paths.
@@ -27,16 +26,40 @@ set varabbrev off
 * Fixed seed used by all stochastic procedures: 20260820.
 ********************************************************************************
 
+local datafile "qiandongnan_county_panel_2015_2024_analysis_ready.dta"
 local root "`c(pwd)'"
-local input "`root'/data/qiandongnan_county_panel_2015_2024_analysis_ready.dta"
-local output "`root'/output/qiandongnan_county_panel_2015_2024_analysis_ready.dta"
+local input "`root'/data/`datafile'"
+
+* If Stata's current directory is elsewhere, use this do-file's directory.
+capture confirm file "`input'"
+if _rc {
+    capture confirm file "`root'/../data/`datafile'"
+    if !_rc local root "`root'/.."
+}
+
+local input "`root'/data/`datafile'"
+capture confirm file "`input'"
+if _rc {
+    local thisfile = subinstr("`c(filename)'", char(92), "/", .)
+    local slash = strrpos("`thisfile'", "/")
+    if `slash' > 0 {
+        local candidate = substr("`thisfile'", 1, `slash' - 1)
+        capture confirm file "`candidate'/data/`datafile'"
+        if !_rc local root "`candidate'"
+    }
+}
+
+local input "`root'/data/`datafile'"
+local output "`root'/output/`datafile'"
 
 capture confirm file "`input'"
 if _rc {
     di as error "Required input not found: `input'"
-    di as error "Change Stata's working directory to the replication package top folder."
+    di as error "Replication package root could not be located."
     exit 601
 }
+
+cd "`root'"
 
 cap mkdir "`root'/output"
 copy "`input'" "`output'", replace

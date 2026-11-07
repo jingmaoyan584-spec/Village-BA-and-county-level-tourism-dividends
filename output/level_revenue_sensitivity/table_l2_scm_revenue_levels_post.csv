@@ -1,0 +1,4 @@
+_Co_Number,_W_Weight,actual_revenue_100m_yuan,synthetic_revenue_100m_yuan,year,actual_revenue_rmb_billion,synthetic_revenue_rmb_billion,absolute_gap_rmb_billion,percentage_gap,sqgap
+9,.016000001,17.12,12.37581,2022,1.712,1.237581,.474419,38.334377,.22507338
+10,0,33.33,16.02176,2023,3.3329999,1.602176,1.730824,108.02958,2.9957516
+11,0,43.66,21.0657,2024,4.3660002,2.10657,2.2594302,107.25636,5.1050248

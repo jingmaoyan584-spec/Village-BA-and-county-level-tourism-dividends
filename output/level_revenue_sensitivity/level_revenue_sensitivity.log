@@ -1,0 +1,393 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/level_revenue_sensitivity.log
+  log type:  text
+ opened on:  20 Oct 2026, 16:56:16
+
+. 
+. cap which synth
+
+. if _rc ssc install synth, replace
+
+. cap which sdid
+
+. if _rc ssc install sdid, replace
+
+. cap which esttab
+
+. if _rc ssc install estout, replace
+
+. 
+. use "`paneldta'", clear
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+
+. xtset county_id year
+
+Panel variable: county_id (strongly balanced)
+ Time variable: year, 2015 to 2024
+         Delta: 1 unit
+
+. capture confirm variable ln_vis
+
+. if _rc gen ln_vis = ln_tour_vis
+
+. capture confirm variable ln_pcgdp
+
+. if _rc gen ln_pcgdp = ln(pcgdp)
+
+. capture confirm variable ln_pop
+
+. if _rc gen ln_pop = ln(pop_10k)
+
+. capture confirm variable ln_budrev
+
+. if _rc gen ln_budrev = ln(bud_rev_10k)
+
+. capture confirm variable ln_budexp
+
+. if _rc gen ln_budexp = ln(bud_exp_10k)
+
+. 
+. * 1. Baseline comparison: county-level 2015-2021 mean revenue in RMB billion.
+. preserve
+
+. keep if inrange(year, 2015, 2021)
+(48 observations deleted)
+
+. gen tour_rev_rmb_billion = tour_rev_bn / 10
+
+. collapse (mean) mean_rev_rmbbn = tour_rev_rmb_billion, by(county county_id)
+
+. quietly summarize mean_rev_rmbbn if county_id != `trid', detail
+
+. scalar donor_mean = r(mean)
+
+. scalar donor_median = r(p50)
+
+. quietly summarize mean_rev_rmbbn if county_id == `trid', meanonly
+
+. scalar taijiang_pre_mean = r(mean)
+
+. keep if county_id == `trid'
+(15 observations deleted)
+
+. gen donor_mean_rmbbn = donor_mean
+
+. gen donor_median_rmbbn = donor_median
+
+. gen taijiang_to_donor_mean = mean_rev_rmbbn / donor_mean
+
+. gen taijiang_to_donor_median = mean_rev_rmbbn / donor_median
+
+. rename mean_rev_rmbbn taijiang_mean_rmbbn
+
+. export delimited using "`rundir'/table_l1_pre_treatment_revenue_base.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l1_pre_treatment_revenue_base.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l1_pre_treatment_revenue_base.csv saved
+
+. export excel using "`rundir'/table_l1_pre_treatment_revenue_base.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l1_pre_treatment_revenue_base.xlsx saved
+
+. restore
+
+. 
+. * 2. SCM in levels. Predictors match the baseline specification except that
+. * revenue history is retained in the original 100-million-yuan units.
+. tempfile scm_level
+
+. synth tour_rev_bn ln_vis ln_pcgdp ln_pop ln_budrev ln_budexp ///
+>     tour_rev_bn(2015) tour_rev_bn(2016) tour_rev_bn(2017) tour_rev_bn(2018) ///
+>     tour_rev_bn(2019) tour_rev_bn(2020) tour_rev_bn(2021), ///
+>     trunit(`trid') trperiod(2022) xperiod(2015(1)2021) ///
+>     mspeperiod(2015(1)2021) resultsperiod(2015(1)2024) ///
+>     keep("`scm_level'") replace
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Synthetic Control Method for Comparative Case Studies
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+First Step: Data Setup
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Data Setup successful
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                Treated Unit: 6
+               Control Units: 1 2 3 4 5 7 8 9 10 11 12 13 14 15 16
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+          Dependent Variable: tour_rev_bn
+  MSPE minimized for periods: 2015 2016 2017 2018 2019 2020 2021
+Results obtained for periods: 2015 2016 2017 2018 2019 2020 2021 2022 2023 2024
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                  Predictors: ln_vis ln_pcgdp ln_pop ln_budrev ln_budexp tour_rev_bn(2015) tour_rev_bn(2016) tour_rev_bn(2017) tour_rev_bn(2018) tour_rev_bn(2019) tour_rev_bn(2020) tour_rev_bn(2021)
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Unless period is specified
+predictors are averaged over: 2015 2016 2017 2018 2019 2020 2021
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Second Step: Run Optimization
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Optimization done
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+Third Step: Obtain Results
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Loss: Root Mean Squared Prediction Error
+
+---------------------
+   RMSPE |  .7070632 
+---------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Unit Weights:
+
+-----------------------
+    Co_No | Unit_Weight
+----------+------------
+        1 |           0
+        2 |           0
+        3 |           0
+        4 |           0
+        5 |           0
+        7 |           0
+        8 |        .292
+        9 |        .016
+       10 |           0
+       11 |           0
+       12 |           0
+       13 |           0
+       14 |        .691
+       15 |           0
+       16 |        .001
+-----------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+Predictor Balance:
+
+------------------------------------------------------
+                               |   Treated  Synthetic 
+-------------------------------+----------------------
+                        ln_vis |  5.103825   5.122622 
+                      ln_pcgdp |  10.36516   10.29307 
+                        ln_pop |   2.48012   2.604644 
+                     ln_budrev |  9.990054   9.828165 
+                     ln_budexp |  11.98897   12.01116 
+             tour_rev_bn(2015) |       5.8    5.71522 
+             tour_rev_bn(2016) |         8    7.59917 
+             tour_rev_bn(2017) |      12.2   11.09603 
+             tour_rev_bn(2018) |     14.34   14.96643 
+             tour_rev_bn(2019) |      18.8   18.91487 
+             tour_rev_bn(2020) |     19.67   19.11448 
+             tour_rev_bn(2021) |     12.52   13.70271 
+------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+. 
+. preserve
+
+. use "`scm_level'", clear
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+
+. capture confirm variable _time
+
+. if !_rc rename _time year
+
+. rename _Y_treated actual_revenue_100m_yuan
+
+. rename _Y_synthetic synthetic_revenue_100m_yuan
+
+. gen actual_revenue_rmb_billion = actual_revenue_100m_yuan / 10
+(5 missing values generated)
+
+. gen synthetic_revenue_rmb_billion = synthetic_revenue_100m_yuan / 10
+(5 missing values generated)
+
+. gen absolute_gap_rmb_billion = actual_revenue_rmb_billion - synthetic_revenue_rmb_billion
+(5 missing values generated)
+
+. gen percentage_gap = 100 * absolute_gap_rmb_billion / synthetic_revenue_rmb_billion
+(5 missing values generated)
+
+. gen sqgap = absolute_gap_rmb_billion^2
+(5 missing values generated)
+
+. quietly summarize sqgap if inrange(year, 2015, 2021), meanonly
+
+. scalar scm_level_pre_rmspe = sqrt(r(mean))
+
+. quietly summarize sqgap if inrange(year, 2022, 2024), meanonly
+
+. scalar scm_level_post_rmspe = sqrt(r(mean))
+
+. keep if inrange(year, 2022, 2024)
+(12 observations deleted)
+
+. export delimited using "`rundir'/table_l2_scm_revenue_levels_post.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l2_scm_revenue_levels_post.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l2_scm_revenue_levels_post.csv saved
+
+. export excel using "`rundir'/table_l2_scm_revenue_levels_post.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l2_scm_revenue_levels_post.xlsx saved
+
+. restore
+
+. 
+. * 3. SDID in levels: report absolute ATTs in billion yuan, placebo VCE.
+. tempname levelpost
+
+. tempfile level_sdid
+
+. postfile `levelpost' str12 period double att_rmb_billion placebo_se_rmb_billion ci_lo_95_rmb_billion ci_hi_95_rmb_billion pvalue reps using `level_sdid', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000004.tmp not found)
+
+. 
+. preserve
+
+. keep if inrange(year, 2015, 2022)
+(32 observations deleted)
+
+. gen treated_2022 = county_id == `trid' & year >= 2022
+
+. sdid tour_rev_bn county_id year treated_2022, vce(placebo) reps(1000) seed(20260820)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+ tour_rev_bn |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_2022 |   4.29450    5.41379     0.79    0.428    -6.31634    14.90533
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+
+. scalar p = 2 * (1 - normal(abs(e(ATT) / e(se))))
+
+. scalar lo = e(ATT) - invnormal(.975) * e(se)
+
+. scalar hi = e(ATT) + invnormal(.975) * e(se)
+
+. post `levelpost' ("2022") (e(ATT)/10) (e(se)/10) (lo/10) (hi/10) (p) (1000)
+
+. restore
+
+. 
+. preserve
+
+. keep if inrange(year, 2015, 2024) & year != 2022
+(16 observations deleted)
+
+. egen time_id = group(year)
+
+. gen treated_post = county_id == `trid' & year >= 2023
+
+. sdid tour_rev_bn county_id time_id treated_post, vce(placebo) reps(1000) seed(20260820)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+ tour_rev_bn |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_post |  13.19511   13.63169     0.97    0.333   -13.52251    39.91273
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+
+. scalar p = 2 * (1 - normal(abs(e(ATT) / e(se))))
+
+. scalar lo = e(ATT) - invnormal(.975) * e(se)
+
+. scalar hi = e(ATT) + invnormal(.975) * e(se)
+
+. post `levelpost' ("2023-2024") (e(ATT)/10) (e(se)/10) (lo/10) (hi/10) (p) (1000)
+
+. restore
+
+. postclose `levelpost'
+
+. 
+. use `level_sdid', clear
+
+. export delimited using "`rundir'/table_l3_sdid_revenue_levels.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l3_sdid_revenue_levels.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l3_sdid_revenue_levels.csv saved
+
+. export excel using "`rundir'/table_l3_sdid_revenue_levels.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l3_sdid_revenue_levels.xlsx saved
+
+. mkmat att_rmb_billion placebo_se_rmb_billion ci_lo_95_rmb_billion ci_hi_95_rmb_billion pvalue, matrix(sdid_level_mat)
+
+. matrix rownames sdid_level_mat = effect_2022 effect_2023_2024
+
+. esttab matrix(sdid_level_mat, fmt(3 3 3 3 3)) using ///
+>     "`rundir'/table_l3_sdid_revenue_levels.rtf", replace ///
+>     title("Level-outcome SDID sensitivity: tourism revenue (RMB billion)") ///
+>     collabels("ATT" "Placebo SE" "95% CI lower" "95% CI upper" "p-value") ///
+>     nomtitles varlabels(effect_2022 "2022" effect_2023_2024 "2023-2024") noobs nonumber
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l3_sdid_revenue_levels.rtf not found)
+(output written to C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/table_l3_sdid_revenue_levels.rtf)
+
+. 
+. file open note using "`rundir'/readme.txt", write replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/readme.txt not found)
+
+. file write note "Source tourism revenue is measured in 100 million yuan; outputs are converted to RMB billion." _n
+
+. file write note "SCM levels uses the formal non-nested implementation and gives observed revenue, synthetic revenue, and absolute gaps for each post-treatment year." _n
+
+. file write note "SDID levels uses vce(placebo), reps(1000), seed(20260820)." _n
+
+. file close note
+
+. 
+. display as result "Level-revenue sensitivity completed: `rundir'"
+Level-revenue sensitivity completed: C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/level_revenue_sensitivity/level_revenue_sensitivity.log
+  log type:  text
+ closed on:  20 Oct 2026, 16:57:08
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

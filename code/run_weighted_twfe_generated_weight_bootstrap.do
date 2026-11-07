@@ -74,6 +74,30 @@ quietly summarize matching_weight, meanonly
 replace matching_weight = matching_weight / r(sum)
 save `weights', replace
 
+* Compute the baseline point estimates from the current analysis data. These
+* values must not be hard-coded because post-treatment outcomes can be revised.
+preserve
+foreach yvar in ln_rev ln_vis {
+    use `basepanel', clear
+    merge m:1 county_id using `weights', nogen keepusing(matching_weight)
+    replace matching_weight = 1 if county_id == `trid'
+    capture drop treated did_2022 did_post
+    gen treated = county_id == `trid'
+    gen did_2022 = treated * (year == 2022)
+    gen did_post = treated * (year >= 2023)
+    quietly regress `yvar' did_2022 did_post ln_pcgdp ln_pop ln_budrev ln_budexp ///
+        i.county_id i.year [aw=matching_weight]
+    if "`yvar'" == "ln_rev" {
+        scalar base_rev_2022 = _b[did_2022]
+        scalar base_rev_post = _b[did_post]
+    }
+    else {
+        scalar base_vis_2022 = _b[did_2022]
+        scalar base_vis_post = _b[did_post]
+    }
+}
+restore
+
 tempname balpost
 tempfile balance
 postfile `balpost' str32 feature double taijiang_value donor_mean weighted_donor_mean ///
@@ -195,10 +219,10 @@ foreach out in "Log revenue" "Log visitors" {
         quietly centile b_`term', centile(2.5 97.5)
         scalar clo = r(c_1)
         scalar chi = r(c_2)
-        if "`out'" == "Log revenue" & "`term'" == "2022" scalar base = .1752433374
-        if "`out'" == "Log revenue" & "`term'" == "post" scalar base = .4134956598
-        if "`out'" == "Log visitors" & "`term'" == "2022" scalar base = .2086167976
-        if "`out'" == "Log visitors" & "`term'" == "post" scalar base = .4566026916
+        if "`out'" == "Log revenue" & "`term'" == "2022" scalar base = base_rev_2022
+        if "`out'" == "Log revenue" & "`term'" == "post" scalar base = base_rev_post
+        if "`out'" == "Log visitors" & "`term'" == "2022" scalar base = base_vis_2022
+        if "`out'" == "Log visitors" & "`term'" == "post" scalar base = base_vis_post
         if "`term'" == "2022" post `infpost' ("`out'") ("2022") (base) (bse) (clo) (chi)
         else post `infpost' ("`out'") ("2023-2024") (base) (bse) (clo) (chi)
     }

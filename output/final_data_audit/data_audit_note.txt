@@ -1,0 +1,7 @@
+Final analysis data audit
+Panel: 16 counties x 10 years (2015-2024) = 160 county-year observations.
+Kaili 2021 general-budget revenue: 191019 (10k yuan); expenditure: 659265 (10k yuan).
+All 16 final 2024 tourism-revenue values were verified in RMB 100 million; log revenue was recomputed consistently.
+Eight tourism outcomes reconstructed arithmetically from official reported levels and growth rates:
+Taijiang 2016 revenue and arrivals; Zhenyuan 2017 revenue and arrivals; Tianzhu 2016 revenue and arrivals; Majiang 2017 revenue and arrivals.
+No KNN or statistical interpolation is used for tourism outcomes or covariates in the causal estimators.

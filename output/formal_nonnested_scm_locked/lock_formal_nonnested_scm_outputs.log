@@ -1,0 +1,322 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/lock_formal_nonnested_scm_outputs.log
+  log type:  text
+ opened on:  20 Oct 2026, 16:43:30
+
+. cap which synth
+
+. if _rc ssc install synth, replace
+
+. cap which esttab
+
+. if _rc ssc install estout, replace
+
+. 
+. use "`paneldta'", clear
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+
+. keep if inrange(year, 2015, 2024)
+(0 observations deleted)
+
+. xtset county_id year
+
+Panel variable: county_id (strongly balanced)
+ Time variable: year, 2015 to 2024
+         Delta: 1 unit
+
+. capture confirm variable ln_rev
+
+. if _rc gen ln_rev = ln_tour_rev
+
+. capture confirm variable ln_vis
+
+. if _rc gen ln_vis = ln_tour_vis
+
+. capture confirm variable ln_pcgdp
+
+. if _rc gen ln_pcgdp = ln(pcgdp)
+
+. capture confirm variable ln_pop
+
+. if _rc gen ln_pop = ln(pop_10k)
+
+. capture confirm variable ln_budrev
+
+. if _rc gen ln_budrev = ln(bud_rev_10k)
+
+. capture confirm variable ln_budexp
+
+. if _rc gen ln_budexp = ln(bud_exp_10k)
+
+. assert !missing(ln_rev, ln_vis, ln_pcgdp, ln_pop, ln_budrev, ln_budexp)
+
+. tempfile panel lookup paths summary donorweights predictorweights
+
+. save `panel', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp saved as .dta format
+
+. preserve
+
+. keep county county_id
+
+. duplicates drop
+
+Duplicates in terms of all variables
+
+(144 observations deleted)
+
+. isid county_id
+
+. save `lookup', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000002.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000002.tmp saved as .dta format
+
+. restore
+
+. 
+. tempname pathpost sumpost donorpost predpost
+
+. postfile `pathpost' str20 outcome int year double actual synthetic gap using `paths', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000003.tmp not found)
+
+. postfile `sumpost' str20 outcome double pre_rmspe post_rmspe rmspe_ratio gap_2022 ///
+>     mean_gap_2023_2024 pct_2022 pct_2023_2024 using `summary', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000004.tmp not found)
+
+. postfile `donorpost' str20 outcome int county_id double donor_weight using `donorweights', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000005.tmp not found)
+
+. postfile `predpost' str20 outcome str32 predictor double predictor_weight_raw predictor_weight_normalized using `predictorweights', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000006.tmp not found)
+
+. 
+. foreach yvar in ln_rev ln_vis {
+  2.     if "`yvar'" == "ln_rev" {
+  3.         local other "ln_vis"
+  4.         local outcome "Tourism revenue"
+  5.         local predictors "ln_vis ln_pcgdp ln_pop ln_budrev ln_budexp ln_rev_2015 ln_rev_2016 ln_rev_2017 ln_rev_2018 ln_rev_2019 ln_rev_2020 ln_rev_2021"
+  6.     }
+  7.     else {
+  8.         local other "ln_rev"
+  9.         local outcome "Tourist visitors"
+ 10.         local predictors "ln_rev ln_pcgdp ln_pop ln_budrev ln_budexp ln_vis_2015 ln_vis_2016 ln_vis_2017 ln_vis_2018 ln_vis_2019 ln_vis_2020 ln_vis_2021"
+ 11.     }
+ 12.     tempfile fit
+ 13.     use `panel', clear
+ 14.     quietly synth `yvar' `other' ln_pcgdp ln_pop ln_budrev ln_budexp ///
+>         `yvar'(2015) `yvar'(2016) `yvar'(2017) `yvar'(2018) ///
+>         `yvar'(2019) `yvar'(2020) `yvar'(2021), ///
+>         trunit(`trid') trperiod(2022) xperiod(2015(1)2021) ///
+>         mspeperiod(2015(1)2021) resultsperiod(2015(1)2024) ///
+>         keep("`fit'") replace
+ 15. 
+.     matrix W = e(W_weights)
+ 16.     clear
+ 17.     svmat double W
+ 18.     rename W1 county_id
+ 19.     rename W2 donor_weight
+ 20.     quietly levelsof county_id, local(donorids)
+ 21.     foreach did of local donorids {
+ 22.         quietly summarize donor_weight if county_id == `did', meanonly
+ 23.         post `donorpost' ("`outcome'") (`did') (r(mean))
+ 24.     }
+ 25. 
+.     * synth returns a symmetric V matrix. Its diagonal contains the predictor
+.     * weights, whose scale is arbitrary; report both raw and sum-normalized values.
+.     matrix Vdiag = vecdiag(e(V_matrix))'
+ 26.     clear
+ 27.     svmat double Vdiag
+ 28.     rename Vdiag1 predictor_weight_raw
+ 29.     quietly summarize predictor_weight_raw, meanonly
+ 30.     gen double predictor_weight_normalized = predictor_weight_raw / r(sum)
+ 31.     gen str32 predictor = ""
+ 32.     local p = 0
+ 33.     foreach pname of local predictors {
+ 34.         local ++p
+ 35.         replace predictor = "`pname'" in `p'
+ 36.     }
+ 37.     assert _N == `p'
+ 38.     forvalues j = 1/`=_N' {
+ 39.         post `predpost' ("`outcome'") (predictor[`j']) ///
+>             (predictor_weight_raw[`j']) (predictor_weight_normalized[`j'])
+ 40.     }
+ 41. 
+.     use `fit', clear
+ 42.     capture confirm variable year
+ 43.     if _rc rename _time year
+ 44.     gen double gap = _Y_treated - _Y_synthetic
+ 45.     gen double sqgap = gap^2
+ 46.     quietly summarize sqgap if inrange(year, 2015, 2021), meanonly
+ 47.     scalar pre = sqrt(r(mean))
+ 48.     quietly summarize sqgap if inrange(year, 2022, 2024), meanonly
+ 49.     scalar post = sqrt(r(mean))
+ 50.     quietly summarize gap if year == 2022, meanonly
+ 51.     scalar g22 = r(mean)
+ 52.     quietly summarize gap if inrange(year, 2023, 2024), meanonly
+ 53.     scalar gpost = r(mean)
+ 54.     post `sumpost' ("`outcome'") (pre) (post) (post/pre) (g22) (gpost) ///
+>         (100*(exp(g22)-1)) (100*(exp(gpost)-1))
+ 55.     forvalues yy = 2015/2024 {
+ 56.         quietly summarize _Y_treated if year == `yy', meanonly
+ 57.         scalar actual = r(mean)
+ 58.         quietly summarize _Y_synthetic if year == `yy', meanonly
+ 59.         scalar synthetic = r(mean)
+ 60.         quietly summarize gap if year == `yy', meanonly
+ 61.         post `pathpost' ("`outcome'") (`yy') (actual) (synthetic) (r(mean))
+ 62.     }
+ 63. }
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+number of observations will be reset to 15
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 15.
+number of observations will be reset to 12
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 12.
+(12 missing values generated)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(5 missing values generated)
+(5 missing values generated)
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+number of observations will be reset to 15
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 15.
+number of observations will be reset to 12
+Press any key to continue, or Break to abort
+Number of observations (_N) was 0, now 12.
+(12 missing values generated)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(1 real change made)
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(5 missing values generated)
+(5 missing values generated)
+
+. postclose `pathpost'
+
+. postclose `sumpost'
+
+. postclose `donorpost'
+
+. postclose `predpost'
+
+. 
+. use `summary', clear
+
+. format pre_rmspe post_rmspe rmspe_ratio gap_2022 mean_gap_2023_2024 pct_2022 pct_2023_2024 %9.3f
+
+. export delimited using "`lockdir'/table_m1_scm_summary.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m1_scm_summary.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m1_scm_summary.csv saved
+
+. export excel using "`lockdir'/table_m1_scm_summary.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m1_scm_summary.xlsx saved
+
+. mkmat pre_rmspe post_rmspe rmspe_ratio gap_2022 mean_gap_2023_2024 pct_2022 pct_2023_2024, matrix(main_summary)
+
+. matrix rownames main_summary = tourism_revenue tourist_visitors
+
+. esttab matrix(main_summary, fmt(3 3 3 3 3 2 2)) using "`lockdir'/table_m1_scm_summary.rtf", replace ///
+>     title("Formal non-nested SCM estimates") ///
+>     collabels("Pre-RMSPE" "Post-RMSPE" "RMSPE ratio" "2022 gap" "2023-2024 mean gap" "2022 effect (%)" "2023-2024 effect (%)") ///
+>     nomtitles nonumber varlabels(tourism_revenue "Tourism revenue" tourist_visitors "Tourist visitors") ///
+>     addnotes("Gaps are treated-minus-synthetic log points. Percentage effects equal 100*[exp(gap)-1].")
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m1_scm_summary.rtf not found)
+(output written to C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m1_scm_summary.rtf)
+
+. 
+. use `paths', clear
+
+. format actual synthetic gap %9.6f
+
+. export delimited using "`lockdir'/table_m2_actual_synthetic_annual_paths.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m2_actual_synthetic_annual_paths.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m2_actual_synthetic_annual_paths.csv saved
+
+. export excel using "`lockdir'/table_m2_actual_synthetic_annual_paths.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m2_actual_synthetic_annual_paths.xlsx saved
+
+. 
+. use `donorweights', clear
+
+. merge m:1 county_id using `lookup', keep(master match)
+(variable county_id was int, now long to accommodate using data's values)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                30  (_merge==3)
+    -----------------------------------------
+
+. count if _merge != 3
+  0
+
+. if r(N) > 0 {
+.     list county_id donor_weight county _merge if _merge != 3, noobs abbreviate(24)
+.     di as error "SCM donor-weight IDs did not map cleanly to county names."
+.     exit 459
+. }
+
+. drop _merge
+
+. gsort outcome -donor_weight
+
+. format donor_weight %9.6f
+
+. export delimited using "`lockdir'/table_m3_donor_weights.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m3_donor_weights.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m3_donor_weights.csv saved
+
+. export excel using "`lockdir'/table_m3_donor_weights.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m3_donor_weights.xlsx saved
+
+. 
+. use `predictorweights', clear
+
+. format predictor_weight_raw predictor_weight_normalized %12.6f
+
+. export delimited using "`lockdir'/table_m4_predictor_weights.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m4_predictor_weights.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m4_predictor_weights.csv saved
+
+. export excel using "`lockdir'/table_m4_predictor_weights.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/table_m4_predictor_weights.xlsx saved
+
+. 
+. file open note using "`lockdir'/readme.txt", write replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/readme.txt not found)
+
+. file write note "Formal SCM specification: non-nested synth; predictors and fitting period match the original baseline." _n
+
+. file write note "Fitting period: 2015-2021. Intervention year: 2022. Results period: 2015-2024." _n
+
+. file close note
+
+. log close
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/formal_nonnested_scm_locked/lock_formal_nonnested_scm_outputs.log
+  log type:  text
+ closed on:  20 Oct 2026, 16:43:31
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

@@ -1,0 +1,3 @@
+period,att_rmb_billion,placebo_se_rmb_billion,ci_lo_95_rmb_billion,ci_hi_95_rmb_billion,pvalue,reps
+2022,.4294498,.54137909,-.63163376,1.4905334,.42763129,1000
+2023-2024,1.319511,1.363169,-1.3522512,3.9912732,.33305776,1000

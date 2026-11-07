@@ -1,0 +1,265 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/baseline_sdid_placebo_1000.log
+  log type:  text
+ opened on:  20 Oct 2026, 16:41:29
+
+. 
+. use "`paneldta'", clear
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+
+. keep if inrange(year, 2015, 2024)
+(0 observations deleted)
+
+. capture confirm variable ln_rev
+
+. if _rc gen ln_rev = ln_tour_rev
+
+. capture confirm variable ln_vis
+
+. if _rc gen ln_vis = ln_tour_vis
+
+. xtset county_id year
+
+Panel variable: county_id (strongly balanced)
+ Time variable: year, 2015 to 2024
+         Delta: 1 unit
+
+. 
+. tempfile panel results
+
+. save `panel', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp saved as .dta format
+
+. 
+. tempname posth
+
+. postfile `posth' str24 outcome str12 period ///
+>     double att placebo_se ci_lo_95 ci_hi_95 pvalue effect_pct reps ///
+>     using `results', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000002.tmp not found)
+
+. 
+. foreach yvar in ln_rev ln_vis {
+  2.     local label "Tourism revenue"
+  3.     if "`yvar'" == "ln_vis" local label "Tourist visitors"
+  4. 
+.     * Immediate breakout year: 2015-2022, with treatment in 2022.
+.     use `panel', clear
+  5.     keep if inrange(year, 2015, 2022)
+  6.     gen treated_2022 = county_id == `trid' & year == 2022
+  7.     sdid `yvar' county_id year treated_2022, ///
+>         vce(placebo) reps(`reps') seed(`seed')
+  8.     scalar p = 2 * (1 - normal(abs(e(ATT) / e(se))))
+  9.     scalar lo = e(ATT) - invnormal(.975) * e(se)
+ 10.     scalar hi = e(ATT) + invnormal(.975) * e(se)
+ 11.     post `posth' ("`label'") ("2022") (e(ATT)) (e(se)) ///
+>         (lo) (hi) (p) (100 * (exp(e(ATT)) - 1)) (`reps')
+ 12. 
+.     * Institutional-expansion stage: omit 2022 and treat 2023-2024 as post.
+.     use `panel', clear
+ 13.     drop if year == 2022
+ 14.     egen time_id = group(year)
+ 15.     gen treated_post = county_id == `trid' & year >= 2023
+ 16.     sdid `yvar' county_id time_id treated_post, ///
+>         vce(placebo) reps(`reps') seed(`seed')
+ 17.     scalar p = 2 * (1 - normal(abs(e(ATT) / e(se))))
+ 18.     scalar lo = e(ATT) - invnormal(.975) * e(se)
+ 19.     scalar hi = e(ATT) + invnormal(.975) * e(se)
+ 20.     post `posth' ("`label'") ("2023-2024") (e(ATT)) (e(se)) ///
+>         (lo) (hi) (p) (100 * (exp(e(ATT)) - 1)) (`reps')
+ 21. }
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(32 observations deleted)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+      ln_rev |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_2022 |   0.39793    0.13741     2.90    0.004     0.12861     0.66724
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(16 observations deleted)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+      ln_rev |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_post |   0.79364    0.15500     5.12    0.000     0.48986     1.09743
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(32 observations deleted)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+      ln_vis |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_2022 |   0.34533    0.12331     2.80    0.005     0.10364     0.58702
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(16 observations deleted)
+Placebo replications (1000). This may take some time.
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5
+..................................................     50
+..................................................     100
+..................................................     150
+..................................................     200
+..................................................     250
+..................................................     300
+..................................................     350
+..................................................     400
+..................................................     450
+..................................................     500
+..................................................     550
+..................................................     600
+..................................................     650
+..................................................     700
+..................................................     750
+..................................................     800
+..................................................     850
+..................................................     900
+..................................................     950
+..................................................     1000
+
+
+Synthetic Difference-in-Differences Estimator
+
+-----------------------------------------------------------------------------
+      ln_vis |     ATT     Std. Err.     t      P>|t|    [95% Conf. Interval]
+-------------+---------------------------------------------------------------
+treated_post |   0.55565    0.27908     1.99    0.046     0.00867     1.10263
+-----------------------------------------------------------------------------
+95% CIs and p-values are based on large-sample approximations.
+Refer to Arkhangelsky et al., (2021) for theoretical derivations.
+
+. postclose `posth'
+
+. 
+. use `results', clear
+
+. format att placebo_se ci_lo_95 ci_hi_95 pvalue effect_pct %9.3f
+
+. export delimited using "`outdir'/table_main_baseline_sdid_placebo_1000.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/table_main_baseline_sdid_placebo_1000.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/table_main_baseline_sdid_placebo_1000.csv saved
+
+. export excel using "`outdir'/table_main_baseline_sdid_placebo_1000.xlsx", ///
+>     firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/table_main_baseline_sdid_placebo_1000.xlsx saved
+
+. 
+. mkmat att placebo_se ci_lo_95 ci_hi_95 pvalue effect_pct, matrix(main_sdid)
+
+. matrix rownames main_sdid = ///
+>     revenue_2022 revenue_2023_2024 visitors_2022 visitors_2023_2024
+
+. matrix colnames main_sdid = ATT placebo_SE CI_lower CI_upper p_value effect_pct
+
+. esttab matrix(main_sdid, fmt(3 3 3 3 3 2)) using ///
+>     "`outdir'/table_main_baseline_sdid_placebo_1000.rtf", replace ///
+>     title("Baseline SDID placebo inference") ///
+>     nonumber nomtitles noobs compress ///
+>     addnotes("Placebo standard errors use `reps' replications and seed `seed'." ///
+>              "Confidence intervals and p-values use normal approximation based on placebo standard errors." ///
+>              "Effects are 100*[exp(ATT)-1].")
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/table_main_baseline_sdid_placebo_1000.rtf not found)
+(output written to C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/table_main_baseline_sdid_placebo_1000.rtf)
+
+. 
+. file open note using "`outdir'/README.txt", write replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/README.txt not found)
+
+. file write note "Baseline SDID placebo inference for the main manuscript." _n
+
+. file write note "Both outcomes use the final .dta, vce(placebo), 1,000 repetitions, and seed 20260820." _n
+
+. file write note "Treatment periods: 2022 and 2023-2024, matching the manuscript specifications." _n
+
+. file close note
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/baseline_sdid/baseline_sdid_placebo_1000.log
+  log type:  text
+ closed on:  20 Oct 2026, 16:43:30
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

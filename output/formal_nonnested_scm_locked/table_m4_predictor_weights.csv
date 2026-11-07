@@ -1,0 +1,25 @@
+outcome,predictor,predictor_weight_raw,predictor_weight_normalized
+Tourism revenue,ln_vis,1.35883709692e-23,1.3588370e-23
+Tourism revenue,ln_pcgdp,1.31074621598e-24,1.3107462e-24
+Tourism revenue,ln_pop,1.76212686441e-24,1.7621269e-24
+Tourism revenue,ln_budrev,2.16676026537e-24,2.1667603e-24
+Tourism revenue,ln_budexp,5.07411525537e-24,5.0741151e-24
+Tourism revenue,ln_rev_2015,.1329065532435209,.13290656
+Tourism revenue,ln_rev_2016,.1708549024312079,.1708549
+Tourism revenue,ln_rev_2017,.2459312154229407,.24593121
+Tourism revenue,ln_rev_2018,.1486812432492857,.14868124
+Tourism revenue,ln_rev_2019,.1455654329967834,.14556544
+Tourism revenue,ln_rev_2020,.0474382394520995,.047438238
+Tourism revenue,ln_rev_2021,.1086224132041619,.10862242
+Tourist visitors,ln_rev,4.44644312167e-24,4.4464433e-24
+Tourist visitors,ln_pcgdp,3.85104318278e-24,3.8510430e-24
+Tourist visitors,ln_pop,2.50171693941e-23,2.5017170e-23
+Tourist visitors,ln_budrev,2.79071598620e-24,2.7907160e-24
+Tourist visitors,ln_budexp,8.16717825754e-24,8.1671779e-24
+Tourist visitors,ln_vis_2015,.1302068483882559,.13020685
+Tourist visitors,ln_vis_2016,.1794507787866909,.17945078
+Tourist visitors,ln_vis_2017,.1732989248333684,.17329893
+Tourist visitors,ln_vis_2018,.1674461998528117,.1674462
+Tourist visitors,ln_vis_2019,.1556151415099817,.15561514
+Tourist visitors,ln_vis_2020,.0578477775498656,.057847779
+Tourist visitors,ln_vis_2021,.1361343290790256,.13613433

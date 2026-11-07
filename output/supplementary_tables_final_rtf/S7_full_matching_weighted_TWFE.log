@@ -1,0 +1,393 @@
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_full_matching_weighted_TWFE.log
+  log type:  text
+ opened on:  20 Oct 2026, 16:57:10
+
+. 
+. use "`paneldta'", clear
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+
+. keep if inrange(year, 2015, 2024)
+(0 observations deleted)
+
+. capture confirm variable ln_rev
+
+. if _rc gen double ln_rev = ln_tour_rev
+
+. capture confirm variable ln_vis
+
+. if _rc gen double ln_vis = ln_tour_vis
+
+. capture confirm variable ln_pcgdp
+
+. if _rc gen double ln_pcgdp = ln(pcgdp)
+
+. capture confirm variable ln_pop
+
+. if _rc gen double ln_pop = ln(pop_10k)
+
+. capture confirm variable ln_budrev
+
+. if _rc gen double ln_budrev = ln(bud_rev_10k)
+
+. capture confirm variable ln_budexp
+
+. if _rc gen double ln_budexp = ln(bud_exp_10k)
+
+. assert !missing(ln_rev, ln_vis, ln_pcgdp, ln_pop, ln_budrev, ln_budexp)
+
+. tempfile panel
+
+. save `panel', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000001.tmp saved as .dta format
+
+. 
+. capture program drop make_kernel_weights
+
+. program define make_kernel_weights
+  1.     syntax , Paneldata(string) Firstyear(integer) Lastyear(integer) Treatid(integer) Saveas(string)
+  2. 
+.     tempfile slope_rev slope_vis
+  3.     use "`paneldata'", clear
+  4.     keep if inrange(year, `firstyear', `lastyear')
+  5.     statsby slope_rev=_b[year], by(county_id) clear: regress ln_rev year
+  6.     save `slope_rev', replace
+  7. 
+.     use "`paneldata'", clear
+  8.     keep if inrange(year, `firstyear', `lastyear')
+  9.     statsby slope_vis=_b[year], by(county_id) clear: regress ln_vis year
+ 10.     save `slope_vis', replace
+ 11. 
+.     use "`paneldata'", clear
+ 12.     keep if inrange(year, `firstyear', `lastyear')
+ 13.     collapse (mean) mean_ln_rev=ln_rev mean_ln_vis=ln_vis mean_ln_pcgdp=ln_pcgdp ///
+>         mean_ln_pop=ln_pop mean_ln_budrev=ln_budrev mean_ln_budexp=ln_budexp, by(county_id)
+ 14.     merge 1:1 county_id using `slope_rev', nogen
+ 15.     merge 1:1 county_id using `slope_vis', nogen
+ 16. 
+.     foreach v in mean_ln_rev slope_rev mean_ln_vis slope_vis mean_ln_pcgdp mean_ln_pop mean_ln_budrev mean_ln_budexp {
+ 17.         egen z_`v' = std(`v')
+ 18.         quietly summarize z_`v' if county_id == `treatid', meanonly
+ 19.         scalar tr_`v' = r(mean)
+ 20.     }
+ 21.     gen double distance = sqrt( ///
+>         (z_mean_ln_rev-tr_mean_ln_rev)^2 + (z_slope_rev-tr_slope_rev)^2 + ///
+>         (z_mean_ln_vis-tr_mean_ln_vis)^2 + (z_slope_vis-tr_slope_vis)^2 + ///
+>         (z_mean_ln_pcgdp-tr_mean_ln_pcgdp)^2 + (z_mean_ln_pop-tr_mean_ln_pop)^2 + ///
+>         (z_mean_ln_budrev-tr_mean_ln_budrev)^2 + (z_mean_ln_budexp-tr_mean_ln_budexp)^2)
+ 22.     gen double matching_weight = exp(-distance)
+ 23.     replace matching_weight = . if county_id == `treatid'
+ 24.     quietly summarize matching_weight, meanonly
+ 25.     replace matching_weight = matching_weight / r(sum)
+ 26.     keep county_id matching_weight
+ 27.     save "`saveas'", replace
+ 28. end
+
+. 
+. tempfile weights_baseline weights_covid results
+
+. make_kernel_weights, paneldata("`panel'") firstyear(2015) lastyear(2021) treatid(`trid') saveas("`weights_baseline'")
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(48 observations deleted)
+(running regress on estimation sample)
+
+      Command: regress ln_rev year
+    slope_rev: _b[year]
+           By: county_id
+
+Statsby groups
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+................
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000005.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000005.tmp saved as .dta format
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(48 observations deleted)
+(running regress on estimation sample)
+
+      Command: regress ln_vis year
+    slope_vis: _b[year]
+           By: county_id
+
+Statsby groups
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+................
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000006.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000006.tmp saved as .dta format
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(48 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                16  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                16  
+    -----------------------------------------
+(1 real change made, 1 to missing)
+(15 real changes made)
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000002.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000002.tmp saved as .dta format
+
+. make_kernel_weights, paneldata("`panel'") firstyear(2015) lastyear(2019) treatid(`trid') saveas("`weights_covid'")
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(80 observations deleted)
+(running regress on estimation sample)
+
+      Command: regress ln_rev year
+    slope_rev: _b[year]
+           By: county_id
+
+Statsby groups
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+................
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000005.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000005.tmp saved as .dta format
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(80 observations deleted)
+(running regress on estimation sample)
+
+      Command: regress ln_vis year
+    slope_vis: _b[year]
+           By: county_id
+
+Statsby groups
+----+--- 1 ---+--- 2 ---+--- 3 ---+--- 4 ---+--- 5 
+................
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000006.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000006.tmp saved as .dta format
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(80 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                16  
+    -----------------------------------------
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                                16  
+    -----------------------------------------
+(1 real change made, 1 to missing)
+(15 real changes made)
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000003.tmp not found)
+file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000003.tmp saved as .dta format
+
+. 
+. tempname resultpost
+
+. postfile `resultpost' str20 panel str24 outcome str32 term double coefficient clustered_se ///
+>     ci_lower ci_upper clustered_p webb_p N r2 adj_r2 using `results', replace
+(file C:\Users\ASUS\AppData\Local\Temp\ST_3e50_000004.tmp not found)
+
+. 
+. foreach specification in baseline covid_excluded {
+  2.     if "`specification'" == "baseline" {
+  3.         local panel_label "Panel A: Baseline"
+  4.         local weightfile `weights_baseline'
+  5.         local sample_condition "inrange(year, 2015, 2024)"
+  6.     }
+  7.     else {
+  8.         local panel_label "Panel B: COVID-excluded"
+  9.         local weightfile `weights_covid'
+ 10.         local sample_condition "!inlist(year, 2020, 2021)"
+ 11.     }
+ 12. 
+.     foreach yvar in ln_rev ln_vis {
+ 13.         use `panel', clear
+ 14.         keep if `sample_condition'
+ 15.         merge m:1 county_id using `weightfile', nogen
+ 16.         replace matching_weight = 1 if county_id == `trid'
+ 17.         assert !missing(matching_weight)
+ 18.         capture drop treated did_2022 did_post
+ 19.         gen byte treated = county_id == `trid'
+ 20.         gen byte did_2022 = treated * (year == 2022)
+ 21.         gen byte did_post = treated * (year >= 2023)
+ 22. 
+.         quietly regress `yvar' did_2022 did_post ln_pcgdp ln_pop ln_budrev ln_budexp ///
+>             i.county_id i.year [aw=matching_weight], vce(cluster county_id)
+ 23. 
+.         if "`yvar'" == "ln_rev" local outcome_label "Log tourism revenue"
+ 24.         else local outcome_label "Log tourist visitors"
+ 25.         foreach term in did_2022 did_post ln_pcgdp ln_pop ln_budrev ln_budexp {
+ 26.             scalar b = _b[`term']
+ 27.             scalar se = _se[`term']
+ 28.             scalar crit = invttail(e(df_r), .025)
+ 29.             scalar lo = b - crit * se
+ 30.             scalar hi = b + crit * se
+ 31.             scalar p_cluster = 2 * ttail(e(df_r), abs(b / se))
+ 32.             scalar p_webb = .
+ 33.             if inlist("`term'", "did_2022", "did_post") {
+ 34.                 quietly boottest `term', cluster(county_id) reps(`reps') seed(20260820) weight(webb) nograph
+ 35.                 scalar p_webb = r(p)
+ 36.                 display as result "S7 `specification' `outcome_label' `term': Webb wild-cluster p = " %9.6f p_webb
+ 37.             }
+ 38.             local term_label ""
+ 39.             if "`term'" == "did_2022" local term_label "Treatment x 2022"
+ 40.             if "`term'" == "did_post"  local term_label "Treatment x Post (2023-2024)"
+ 41.             if "`term'" == "ln_pcgdp"  local term_label "Log per-capita GDP"
+ 42.             if "`term'" == "ln_pop"    local term_label "Log resident population"
+ 43.             if "`term'" == "ln_budrev" local term_label "Log budget revenue"
+ 44.             if "`term'" == "ln_budexp" local term_label "Log budget expenditure"
+ 45.             post `resultpost' ("`specification'") ("`outcome_label'") ("`term_label'") ///
+>                 (b) (se) (lo) (hi) (p_cluster) (p_webb) (e(N)) (e(r2)) (e(r2_a))
+ 46.         }
+ 47.     }
+ 48. }
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(0 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               160  
+    -----------------------------------------
+(10 real changes made)
+S7 baseline Log tourism revenue did_2022: Webb wild-cluster p =  0.319732
+S7 baseline Log tourism revenue did_post: Webb wild-cluster p =  0.053505
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(0 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               160  
+    -----------------------------------------
+(10 real changes made)
+S7 baseline Log tourist visitors did_2022: Webb wild-cluster p =  0.057706
+S7 baseline Log tourist visitors did_post: Webb wild-cluster p =  0.030103
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(32 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               128  
+    -----------------------------------------
+(8 real changes made)
+S7 covid_excluded Log tourism revenue did_2022: Webb wild-cluster p =  0.317632
+S7 covid_excluded Log tourism revenue did_post: Webb wild-cluster p =  0.109611
+(Qiandongnan county panel 2015-2024 analysis sample, Stata-ready)
+(32 observations deleted)
+
+    Result                      Number of obs
+    -----------------------------------------
+    Not matched                             0
+    Matched                               128  
+    -----------------------------------------
+(8 real changes made)
+S7 covid_excluded Log tourist visitors did_2022: Webb wild-cluster p =  0.210721
+S7 covid_excluded Log tourist visitors did_post: Webb wild-cluster p =  0.147815
+
+. postclose `resultpost'
+
+. 
+. use `results', clear
+
+. order panel outcome term coefficient clustered_se ci_lower ci_upper clustered_p webb_p N r2 adj_r2
+
+. gen byte term_order = cond(term == "Treatment x 2022", 1, ///
+>     cond(term == "Treatment x Post (2023-2024)", 2, ///
+>     cond(term == "Log per-capita GDP", 3, ///
+>     cond(term == "Log resident population", 4, ///
+>     cond(term == "Log budget revenue", 5, 6)))))
+
+. sort panel outcome term_order
+
+. drop term_order
+
+. export delimited using "`tabdir'/S7_full_matching_weighted_TWFE_results.csv", replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_full_matching_weighted_TWFE_results.csv not found)
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_full_matching_weighted_TWFE_results.csv saved
+
+. export excel using "`tabdir'/S7_full_matching_weighted_TWFE_results.xlsx", firstrow(variables) replace
+file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_full_matching_weighted_TWFE_results.xlsx saved
+
+. 
+. * Two long-form panels retain every requested statistic for every covariate.
+. * Webb p-values are intentionally blank for controls because the sensitivity is
+. * defined only for the two treatment coefficients.
+. foreach specification in baseline covid_excluded {
+  2.     preserve
+  3.     keep if panel == "`specification'"
+  4.     gen rowid = _n
+  5.     mkmat coefficient clustered_se ci_lower ci_upper clustered_p webb_p N r2 adj_r2, matrix(s7mat)
+  6.     local rownames ""
+  7.     forvalues i = 1/`=_N' {
+  8.         local outcome = outcome[`i']
+  9.         local term = term[`i']
+ 10.         local outcome = subinstr("`outcome'", " ", "_", .)
+ 11.         local term = subinstr("`term'", " ", "_", .)
+ 12.         local term = subinstr("`term'", "(", "", .)
+ 13.         local term = subinstr("`term'", ")", "", .)
+ 14.         local term = subinstr("`term'", "-", "_", .)
+ 15.         local rownames "`rownames' R`i'"
+ 16.         local label`i' "`outcome': `term'"
+ 17.     }
+ 18.     matrix rownames s7mat = `rownames'
+ 19.     matrix colnames s7mat = coefficient clustered_SE ci_lower ci_upper clustered_p webb_p N R2 adjusted_R2
+ 20.     if "`specification'" == "baseline" {
+ 21.         local title "S7 Table. Full matching-weighted TWFE regression results. Panel A: Baseline (2015-2024)."
+ 22.         local mode replace
+ 23.     }
+ 24.     else {
+ 25.         local title "Panel B: COVID-excluded (2015-2019 and 2022-2024)."
+ 26.         local mode append
+ 27.     }
+ 28.     esttab matrix(s7mat, fmt(3 3 3 3 3 3 0 3 3)) using ///
+>         "`tabdir'/S7_Table_full_matching_weighted_TWFE_regression_results.rtf", `mode' ///
+>         title("`title'") ///
+>         collabels("Coefficient" "Clustered SE" "95% CI lower" "95% CI upper" "Clustered p-value" "Webb p-value" "N" "R-squared" "Adjusted R-squared") ///
+>         nomtitles nonumber ///
+>         addnotes("County fixed effects: Yes. Year fixed effects: Yes. Standard errors are clustered by county.", ///
+>                  "Webb wild-cluster bootstrap p-values use `reps' replications, seed 20260820, and are reported only for treatment coefficients.", ///
+>                  "Panel A weights use 2015-2021 features; Panel B weights use 2015-2019 features and excludes 2020-2021 for every county.")
+ 29.     forvalues i = `=_N'(-1)1 {
+ 30.         tempfile clean`i'
+ 31.         filefilter "`tabdir'/S7_Table_full_matching_weighted_TWFE_regression_results.rtf" "`clean`i''", ///
+>             from("R`i'") to("`label`i''") replace
+ 32.         copy "`clean`i''" "`tabdir'/S7_Table_full_matching_weighted_TWFE_regression_results.rtf", replace
+ 33.     }
+ 34.     restore
+ 35. }
+(12 observations deleted)
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_Table_full_matching_weighted_TWFE_regression_results.rtf not found)
+(output written to C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_Table_full_matching_weighted_TWFE_regression_results.rtf)
+(12 observations deleted)
+(output written to C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_Table_full_matching_weighted_TWFE_regression_results.rtf)
+
+. 
+. * Convert legal Stata-name separators in matrix row labels back to display text.
+. tempfile s7clean
+
+. filefilter "`tabdir'/S7_Table_full_matching_weighted_TWFE_regression_results.rtf" "`s7clean'", ///
+>     from("_") to(" ") replace
+
+. copy "`s7clean'" "`tabdir'/S7_Table_full_matching_weighted_TWFE_regression_results.rtf", replace
+
+. 
+. file open readme using "`tabdir'/S7_README.txt", write replace
+(file C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_README.txt not found)
+
+. file write readme "S7 is generated from the final 2015-2024 analysis .dta using matching-weighted TWFE." _n
+
+. file write readme "Both panels include county and year fixed effects and county-clustered standard errors." _n
+
+. file write readme "Webb wild-cluster bootstrap p-values are calculated only for treatment coefficients, with `reps' replications." _n
+
+. file close readme
+
+. 
+. log close
+      name:  <unnamed>
+       log:  C:\Users\ASUS\Desktop\新建文件夹\Supporting Information/output/supplementary_tables_final_rtf/S7_full_matching_weighted_TWFE.log
+  log type:  text
+ closed on:  20 Oct 2026, 16:57:15
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

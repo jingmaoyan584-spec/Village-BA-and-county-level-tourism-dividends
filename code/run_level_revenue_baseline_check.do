@@ -56,7 +56,7 @@ export excel using "`rundir'/table_l1_pre_treatment_revenue_base.xlsx", firstrow
 restore
 
 * 2. SCM in levels. Predictors match the baseline specification except that
-* revenue history is retained in original billion-yuan units.
+* revenue history is retained in the original 100-million-yuan units.
 tempfile scm_level
 synth tour_rev_bn ln_vis ln_pcgdp ln_pop ln_budrev ln_budexp ///
     tour_rev_bn(2015) tour_rev_bn(2016) tour_rev_bn(2017) tour_rev_bn(2018) ///
